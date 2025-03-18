@@ -182,3 +182,212 @@ Pick your host language (Python, Rust, C++) and I’ll build you:
 - Full lexer-parser code
 - LLVM IR generator
 - Code emitter pipeline
+
+
+
+----------------------------------------------------------------------------------
+We are choosing python as a language choice for the project.
+
+
+TwiLang Compiler in Python — Full Pipeline Plan
+
+## **1. Folder Structure**
+```
+twilang/
+├── lexer.py             → Tokenizer
+├── parser.py            → AST builder
+├── ast_nodes.py         → AST node classes
+├── semantic.py          → Semantic checks
+├── codegen.py           → LLVM IR generation
+├── runtime/             → Runtime functions (C)
+├── compiler.py          → Main driver (CLI)
+├── tests/               → Unit tests
+└── stdlib/              → Optional standard library functions
+
+
+
+## **2. Lexer (lexer.py)**
+
+Use `sly` or `ply`.
+
+```python
+from sly import Lexer
+
+class TwiLexer(Lexer):
+    tokens = { MA, KA, NUMBER, IDENTIFIER }
+    ignore = ' \t'
+    
+    # Keywords
+    MA = r'ma'
+    KA = r'ka'
+    
+    # Tokens
+    IDENTIFIER = r'[a-zA-Z_][a-zA-Z0-9_]*'
+    NUMBER = r'\d+'
+
+    # Literals
+    literals = { '=', '+', '-', '*', '/', '(', ')' }
+
+    def NUMBER(self, t):
+        t.value = int(t.value)
+        return t
+
+## **3. AST Nodes (ast_nodes.py)**
+```python
+class Node: pass
+
+class Program(Node):
+    def __init__(self, statements): self.statements = statements
+
+class VarAssign(Node):
+    def __init__(self, name, value): self.name = name; self.value = value
+
+class Print(Node):
+    def __init__(self, expr): self.expr = expr
+
+class Number(Node):
+    def __init__(self, value): self.value = value
+
+class VarRef(Node):
+    def __init__(self, name): self.name = name
+```
+
+---
+
+## **4. Parser (parser.py)**
+
+Use `sly` again.
+
+```python
+from sly import Parser
+from lexer import TwiLexer
+from ast_nodes import *
+
+class TwiParser(Parser):
+    tokens = TwiLexer.tokens
+
+    def __init__(self):
+        self.names = {}
+
+    @_('statements')
+    def program(self, p): return Program(p.statements)
+
+    @_('statements statement')
+    def statements(self, p): return p.statements + [p.statement]
+
+    @_('statement')
+    def statements(self, p): return [p.statement]
+
+    @_('MA IDENTIFIER "=" expr')
+    def statement(self, p): return VarAssign(p.IDENTIFIER, p.expr)
+
+    @_('KA expr')
+    def statement(self, p): return Print(p.expr)
+
+    @_('NUMBER')
+    def expr(self, p): return Number(p.NUMBER)
+
+    @_('IDENTIFIER')
+    def expr(self, p): return VarRef(p.IDENTIFIER)
+```
+
+---
+
+## **5. Code Generator (LLVM IR) (codegen.py)**
+
+```python
+from llvmlite import ir
+from ast_nodes import *
+
+class CodeGen:
+    def __init__(self):
+        self.module = ir.Module(name="twi_module")
+        self.builder = None
+        self.func = None
+        self.variables = {}
+
+    def generate(self, node):
+        func_type = ir.FunctionType(ir.VoidType(), [])
+        self.func = ir.Function(self.module, func_type, name="main")
+        block = self.func.append_basic_block(name="entry")
+        self.builder = ir.IRBuilder(block)
+
+        for stmt in node.statements:
+            self.compile(stmt)
+
+        self.builder.ret_void()
+        return self.module
+
+    def compile(self, node):
+        if isinstance(node, VarAssign):
+            var = self.builder.alloca(ir.IntType(32), name=node.name)
+            val = self.compile(node.value)
+            self.builder.store(val, var)
+            self.variables[node.name] = var
+
+        elif isinstance(node, Print):
+            val = self.compile(node.expr)
+            self.call_print(val)
+
+        elif isinstance(node, Number):
+            return ir.Constant(ir.IntType(32), node.value)
+
+        elif isinstance(node, VarRef):
+            return self.builder.load(self.variables[node.name], name=node.name)
+
+    def call_print(self, val):
+        voidptr_ty = ir.IntType(8).as_pointer()
+        printf_ty = ir.FunctionType(ir.IntType(32), [voidptr_ty], var_arg=True)
+        printf = self.module.globals.get('printf')
+        if not printf:
+            printf = ir.Function(self.module, printf_ty, name='printf')
+        fmt_str = self.builder.global_string_ptr("%d\n", name="fmt")
+        self.builder.call(printf, [fmt_str, val])
+```
+
+---
+
+## **6. Driver Code (compiler.py)**
+
+```python
+from lexer import TwiLexer
+from parser import TwiParser
+from codegen import CodeGen
+
+source_code = open("test.twi").read()
+lexer = TwiLexer()
+parser = TwiParser()
+ast = parser.parse(lexer.tokenize(source_code))
+
+codegen = CodeGen()
+module = codegen.generate(ast)
+print(str(module))
+```
+
+---
+
+## **7. Compile and Run**
+```bash
+python compiler.py > out.ll
+llc out.ll -o out.o
+clang out.o -o twilang
+./twilang
+```
+
+---
+
+## **8. Sample test.twi file**
+```
+ma n = 42
+ka n
+```
+
+---
+
+Reply if you want me to generate the full working files and zip them. I can also add:
+- Function definitions in Twi
+- Arithmetic expressions
+- Conditionals (`sɛ`, `anka`)
+- Loops (`mpɛn`, `bere`)
+
+MORE DETAILS WILL BE ADDED 
