@@ -1,8 +1,6 @@
-   Here is a Detailed Step by Step Guide to Create a General-Purpose Programming Language in Twi (using LLVM) 
+Here is a Detailed Step by Step Guide to Create a General-Purpose Programming Language in Twi (using LLVM) 
 
 This plan will walk you through everything: from design to LLVM backend integration. We'll use the term  “TwiLang”  to refer to your language. This will be language-agnostic initially; implementation examples will follow once you pick a host language (Python, Rust, or C++).
-
----
 
 1. Language Design Phase 
 
@@ -25,13 +23,13 @@ This plan will walk you through everything: from design to LLVM backend integrat
   | `function`     | Functions     | `dwumadie`          |
   | `return`       | Return value  | `san`               |
 
--  Example Source Code in TwiLang: 
+Example Source Code in TwiLang: 
      
   ma n = 5
   ka n
      
 
-   1.3  Define Data Types 
+1.3  Define Data Types 
 - `nɔma` → integer  
 - `nkyerɛaseɛ` → string  
 - `nokware/atɛkyɛ` → boolean  
@@ -46,8 +44,6 @@ expression  ::= term (("+" | "-") term)*
 term        ::= factor (("*" | "/") factor)*
 factor      ::= identifier | number | string | "(" expression ")"
    
-
----
 
 2. Frontend Implementation (Lexer + Parser) 
 
