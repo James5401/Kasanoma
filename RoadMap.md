@@ -1,4 +1,4 @@
-Here is a Detailed Step by Step Guide to Create a General-Purpose Programming Language in Twi (using LLVM) 
+**Here is a Detailed Step by Step Guide to Create a General-Purpose Programming Language in Twi (using LLVM) **
 
 This plan will walk you through everything: from design to LLVM backend integration. We'll use the term  “TwiLang”  to refer to your language. This will be language-agnostic initially; implementation examples will follow once you pick a host language (Python, Rust, or C++).
 
